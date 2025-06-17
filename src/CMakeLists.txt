@@ -230,6 +230,7 @@ endif()
 
 if(WITH_CYCLES_DEVICE_CUDA OR WITH_CYCLES_DEVICE_OPTIX)
   add_definitions(-DWITH_CUDA)
+  add_definitions(-DWITH_PORTABLERT)
 
   if(WITH_CUDA_DYNLOAD)
     include_directories(

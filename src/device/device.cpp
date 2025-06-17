@@ -19,6 +19,7 @@
 #include "device/multi/device.h"
 #include "device/oneapi/device.h"
 #include "device/optix/device.h"
+#include "device/portablert/device.h"
 
 #ifdef WITH_HIPRT
 #  include <hiprtew.h>
@@ -43,6 +44,7 @@ vector<DeviceInfo> Device::cpu_devices;
 vector<DeviceInfo> Device::hip_devices;
 vector<DeviceInfo> Device::metal_devices;
 vector<DeviceInfo> Device::oneapi_devices;
+vector<DeviceInfo> Device::portablert_devices;
 uint Device::devices_initialized_mask = 0;
 
 /* Device */
@@ -117,6 +119,14 @@ unique_ptr<Device> Device::create(const DeviceInfo &info,
       break;
 #endif
 
+#ifdef WITH_PORTABLERT
+    case DEVICE_PORTABLERT:
+      if (device_portablert_init()) {
+        device = device_portablert_create(info, stats, profiler, headless);
+      }
+      break;
+#endif
+
     default:
       break;
   }
@@ -154,6 +164,9 @@ DeviceType Device::type_from_string(const char *name)
   if (strcmp(name, "HIPRT") == 0) {
     return DEVICE_HIPRT;
   }
+  if (strcmp(name, "PORTABLERT") == 0) {
+    return DEVICE_PORTABLERT;
+  }
 
   return DEVICE_NONE;
 }
@@ -184,6 +197,9 @@ string Device::string_from_type(DeviceType type)
   if (type == DEVICE_HIPRT) {
     return "HIPRT";
   }
+  if (type == DEVICE_PORTABLERT) {
+    return "PORTABLERT";
+  }
 
   return "";
 }
@@ -211,6 +227,9 @@ vector<DeviceType> Device::available_types()
   if (hiprtewInit()) {
     types.push_back(DEVICE_HIPRT);
   }
+#endif
+#ifdef WITH_PORTABLERT
+  types.push_back(DEVICE_PORTABLERT);
 #endif
   return types;
 }
@@ -300,6 +319,20 @@ vector<DeviceInfo> Device::available_devices(const uint mask)
       devices_initialized_mask |= DEVICE_MASK_METAL;
     }
     for (const DeviceInfo &info : metal_devices) {
+      devices.push_back(info);
+    }
+  }
+#endif
+
+#ifdef WITH_PORTABLERT
+  if (mask & DEVICE_MASK_PORTABLERT) {
+    if (!(devices_initialized_mask & DEVICE_MASK_PORTABLERT)) {
+      if (device_portablert_init()) {
+        device_portablert_info(portablert_devices);
+      }
+      devices_initialized_mask |= DEVICE_MASK_PORTABLERT;
+    }
+    for (const DeviceInfo &info : portablert_devices) {
       devices.push_back(info);
     }
   }
@@ -470,6 +503,7 @@ void Device::free_memory()
   oneapi_devices.free_memory();
   cpu_devices.free_memory();
   metal_devices.free_memory();
+  portablert_devices.free_memory();
 }
 
 unique_ptr<DeviceQueue> Device::gpu_queue_create()

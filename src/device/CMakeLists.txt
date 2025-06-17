@@ -50,6 +50,21 @@ set(SRC_CUDA
   cuda/util.h
 )
 
+set(SRC_PRT
+  portablert/device.cpp
+  portablert/device.h
+  portablert/device_impl.cpp
+  portablert/device_impl.h
+  portablert/graphics_interop.cpp
+  portablert/graphics_interop.h
+  portablert/kernel.cpp
+  portablert/kernel.h
+  portablert/queue.cpp
+  portablert/queue.h
+  portablert/util.cpp
+  portablert/util.h
+)
+
 set(SRC_HIP
   hip/device.cpp
   hip/device.h
@@ -134,6 +149,7 @@ set(SRC
   ${SRC_DUMMY}
   ${SRC_MULTI}
   ${SRC_OPTIX}
+  ${SRC_PRT}
   ${SRC_HEADERS}
 )
 
@@ -227,5 +243,6 @@ source_group("hiprt" FILES ${SRC_HIPRT})
 source_group("multi" FILES ${SRC_MULTI})
 source_group("metal" FILES ${SRC_METAL})
 source_group("optix" FILES ${SRC_OPTIX})
+source_group("portablert" FILES ${SRC_PRT})
 source_group("oneapi" FILES ${SRC_ONEAPI})
 source_group("common" FILES ${SRC_BASE} ${SRC_HEADERS})
