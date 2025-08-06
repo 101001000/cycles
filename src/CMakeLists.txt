@@ -447,6 +447,18 @@ if(WITH_CYCLES_BLENDER)
   add_subdirectory(blender)
 endif()
 
+# ---------------------------------------------------------------
+# libportablert.a (terceros)
+set(PORTABLERT_ROOT "${PROJECT_SOURCE_DIR}/third_party/portablert")
+
+message("PORTABLERT_ROOT: ${PORTABLERT_ROOT}")
+
+add_library(portablert STATIC IMPORTED GLOBAL)
+set_target_properties(portablert PROPERTIES
+  IMPORTED_LOCATION "${PORTABLERT_ROOT}/lib/libportableRT.a"
+  INTERFACE_INCLUDE_DIRECTORIES "${PORTABLERT_ROOT}/include")
+# ---------------------------------------------------------------
+
 add_subdirectory(app)
 add_subdirectory(bvh)
 add_subdirectory(device)
@@ -475,3 +487,4 @@ if(NOT WITH_BLENDER)
     delayed_do_install(${CMAKE_BINARY_DIR}/bin)
   endif()
 endif()
+

@@ -37,6 +37,8 @@ extern void simple_integrator_compact_states(const int *active_terminated_states
 
 extern void simple_adaptive_sampling_convergence_check(float *render_buffer, const int sx, const int sy, const int sw, const int sh, const float threshold, const int reset, const int offset, const int stride, uint *num_active_pixels);
 
+extern void simple_integrator_shade_light(const int *path_index_array, float *render_buffer, const int work_size);
+
 CCL_NAMESPACE_BEGIN
 
 
@@ -195,6 +197,13 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
                     int stride = get_scalar<int>(args.values[8]);
                     uint *num_active_pixels = get_pointer<uint>(args.values[9]);
                     ::simple_adaptive_sampling_convergence_check(render_buffer, sx, sy, sw, sh, threshold, reset, offset, stride, num_active_pixels);
+                    break;
+                }
+                case DeviceKernel::DEVICE_KERNEL_INTEGRATOR_SHADE_LIGHT: {
+                    int *path_index_array = get_pointer<int>(args.values[0]);
+                    float *render_buffer = get_pointer<float>(args.values[1]);
+                    int work_size = get_scalar<int>(args.values[2]);
+                    ::simple_integrator_shade_light(path_index_array, render_buffer, work_size);
                     break;
                 }
                 default:

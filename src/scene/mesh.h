@@ -177,6 +177,7 @@ class Mesh : public Geometry {
   size_t num_subd_added_verts;
   size_t num_subd_faces;
 
+  friend class SimpleDevice;
   friend class BVH2;
   friend class BVHBuild;
   friend class BVHSpatialSplit;

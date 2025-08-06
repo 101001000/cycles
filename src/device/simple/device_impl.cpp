@@ -3,6 +3,9 @@
 #include "kernel/device/simple/globals.h"
 #include "device/simple/queue.h"
 #include "bvh/bvh2.h"
+#include "../third_party/portablert/include/portableRT/portableRT.hpp"
+#include "scene/geometry.h"
+#include "scene/mesh.h"
 
 CCL_NAMESPACE_BEGIN
 
@@ -11,6 +14,11 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     kernel_globals.dim = (int*)malloc(sizeof(int));
     kernel_globals.bid = (int*)malloc(sizeof(int));
     simple_set_idx(kernel_globals.idx, kernel_globals.dim, kernel_globals.bid);
+    std::cout << "available backends: " << std::endl;
+    for (auto backend : portableRT::available_backends()) {
+        std::cout << backend->name() << " " << std::endl;
+    }
+    std::cout << "selected backend: " << portableRT::selected_backend->name() << std::endl;
 }
 
 SimpleDevice::~SimpleDevice() {
@@ -201,8 +209,48 @@ unique_ptr<DeviceQueue> SimpleDevice::gpu_queue_create() {
     return make_unique<SimpleDeviceQueue>(this);
 }
 
+std::string geometry_type_name(Geometry::Type type){
+    if (type == Geometry::Type::MESH) {
+        return "mesh";
+    }
+    if (type == Geometry::Type::HAIR) {
+        return "hair";
+    }
+    if (type == Geometry::Type::VOLUME) {
+        return "volume";
+    }
+    if (type == Geometry::Type::POINTCLOUD) {
+        return "pointcloud";
+    }
+    if (type == Geometry::Type::LIGHT) {
+        return "light";
+    }
+    return "unknown";
+}
+
 void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
     std::cout << "building bvh!" << std::endl;
+
+    std::vector<std::array<float, 9>> tris;
+
+    for (Geometry *geometry : bvh->geometry) {
+        std::cout << "analizando geometría" << geometry_type_name(geometry->geometry_type) << " " << std::endl;
+
+        if (geometry->is_mesh()) {
+            Mesh *mesh = static_cast<Mesh *>(geometry);
+            for (size_t i = 0; i < mesh->num_triangles(); ++i) {
+                Mesh::Triangle tri = mesh->get_triangle(i);
+                float3 v0 = mesh->verts[tri.v[0]];
+                float3 v1 = mesh->verts[tri.v[1]];
+                float3 v2 = mesh->verts[tri.v[2]];
+                tris.push_back({v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z});            
+            }
+        }
+    }
+
+    std::cout << "building..." << std::endl;
+    portableRT::selected_backend->set_tris(tris);
+    std::cout << "built!" << std::endl;
 
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "kernel/device/hiprt/common.h"
+#include "../third_party/portablert/include/portableRT/portableRT.hpp"
 
 CCL_NAMESPACE_BEGIN
 
@@ -10,6 +11,7 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
     const uint visibility,
     ccl_private Intersection *isect)
 {
+
     isect->t = ray->tmax;
     isect->u = 0.0f;
     isect->v = 0.0f;
@@ -17,7 +19,17 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
     isect->object = OBJECT_NONE;
     isect->type = PRIMITIVE_NONE;
 
-    return false;
+    portableRT::Ray prt_ray;
+    prt_ray.origin = {ray->P.x, ray->P.y, ray->P.z};
+    prt_ray.direction = {ray->D.x, ray->D.y, ray->D.z};
+    auto hits = portableRT::nearest_hits({prt_ray});
+
+    isect->t = hits[0].t;
+    isect->u = hits[0].u;
+    isect->v = hits[0].v;
+    isect->prim = hits[0].primitive_id;
+
+    return hits[0].valid;
 }
 
 #ifdef __BVH_LOCAL__
