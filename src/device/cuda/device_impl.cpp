@@ -696,7 +696,7 @@ void CUDADevice::const_copy_to(const char *name, void *host, const size_t size)
 
 void CUDADevice::global_alloc(device_memory &mem)
 {
-  if (mem.is_resident(this)) {
+  if (!mem.device_pointer) {
     generic_alloc(mem);
     generic_copy_to(mem);
   }
