@@ -2,6 +2,7 @@
 #include "device/simple/device_impl.h"
 #include "kernel/device/simple/globals.h"
 #include "device/simple/queue.h"
+#include "bvh/bvh2.h"
 
 CCL_NAMESPACE_BEGIN
 
@@ -69,8 +70,10 @@ void SimpleDevice::tex_free(device_texture &mem)
   }
 }
 
-BVHLayoutMask SimpleDevice::get_bvh_layout_mask(const uint kernel_features) const {return BVH_LAYOUT_BVH2;}
+BVHLayoutMask SimpleDevice::get_bvh_layout_mask(const uint kernel_features) const {return BVH_LAYOUT_SIMPLE;}
 void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size){
+
+    std::cout << "copying " << name << " to device (" << size << " bytes)" << std::endl;
 
     //void* ptr = malloc(size);
     //memcpy(ptr, host, size);
@@ -196,6 +199,11 @@ void SimpleDevice::copy_host_to_device(void *device_pointer, void *host_pointer,
 
 unique_ptr<DeviceQueue> SimpleDevice::gpu_queue_create() {
     return make_unique<SimpleDeviceQueue>(this);
+}
+
+void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
+    std::cout << "building bvh!" << std::endl;
+
 }
 
 CCL_NAMESPACE_END

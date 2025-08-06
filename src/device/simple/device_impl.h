@@ -23,6 +23,7 @@ public:
     void mem_free(device_memory &mem) override;
     bool shared_alloc(void *&shared_pointer, const size_t size) override;
     unique_ptr<DeviceQueue> gpu_queue_create() override;
+    void build_bvh(BVH *bvh, Progress &progress, bool refit) override;
     
 
 
