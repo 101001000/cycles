@@ -33,7 +33,6 @@ public:
     void global_free(device_memory &mem);
     void global_copy_to(device_memory &mem);
 
-
     KernelGlobalsGPU kernel_globals{};
 };
 

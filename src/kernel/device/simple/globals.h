@@ -17,6 +17,7 @@ struct IntegratorStateGPU;
 struct KernelGlobalsGPU {
 
     #define KERNEL_DATA_ARRAY(type, name) const type *__##name = nullptr;
+    KERNEL_DATA_ARRAY(int, object_id)
     #include "kernel/data_arrays.h"
     #undef KERNEL_DATA_ARRAY
       const KernelData *__data;
@@ -41,8 +42,11 @@ ccl_device_inline const T &kernel_data_fetch_dbg_ref(const char *nm,
                                                     const T     *base,
                                                     size_t       i)
 {
-  if(static_cast<int>(i) < 0)
+  if(static_cast<int>(i) < 0){
+    std::cout << "WRONG ACCESS [device] " << nm << " = " << static_cast<const void *>(base) << " idx " << i
+            << std::endl;
     return base[0];
+  }
   //std::cout << "[device] " << nm << " = " << static_cast<const void *>(base) << " idx " << i
   //          << std::endl;
   return base[i];            

@@ -18,6 +18,7 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     for (auto backend : portableRT::available_backends()) {
         std::cout << backend->name() << " " << std::endl;
     }
+    portableRT::select_backend(portableRT::available_backends()[1]);
     std::cout << "selected backend: " << portableRT::selected_backend->name() << std::endl;
 }
 
@@ -25,14 +26,6 @@ SimpleDevice::~SimpleDevice() {
     free(kernel_globals.idx);
     free(kernel_globals.dim);
     free(kernel_globals.bid);
-
-    //free(const_cast<void*>(reinterpret_cast<const void*>(kernel_globals.__data)));
-    //free(kernel_globals.integrator_state);
-
-    //#define KERNEL_DATA_ARRAY(t, nm) \
-    //free(const_cast<void*>(reinterpret_cast<const void*>(kernel_globals.__##nm)));
-//#include "kernel/data_arrays.h"
-//#undef KERNEL_DATA_ARRAY
 }
 
 
@@ -81,7 +74,7 @@ void SimpleDevice::tex_free(device_texture &mem)
 BVHLayoutMask SimpleDevice::get_bvh_layout_mask(const uint kernel_features) const {return BVH_LAYOUT_SIMPLE;}
 void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size){
 
-    std::cout << "copying " << name << " to device (" << size << " bytes)" << std::endl;
+    std::cout << "const copying " << name << " to device (" << size << " bytes)" << std::endl;
 
     //void* ptr = malloc(size);
     //memcpy(ptr, host, size);
@@ -101,6 +94,7 @@ void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size
       simple_set_data_array(#nm, ptr);                                                 \
       return;                                                                          \
     }
+    KERNEL_DATA_ARRAY(int, object_id)
     #include "kernel/data_arrays.h"
     #undef KERNEL_DATA_ARRAY
 
@@ -232,6 +226,7 @@ void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
     std::cout << "building bvh!" << std::endl;
 
     std::vector<std::array<float, 9>> tris;
+    std::vector<int> object_ids;
 
     for (Geometry *geometry : bvh->geometry) {
         std::cout << "analizando geometría" << geometry_type_name(geometry->geometry_type) << " " << std::endl;
@@ -244,9 +239,14 @@ void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
                 float3 v1 = mesh->verts[tri.v[1]];
                 float3 v2 = mesh->verts[tri.v[2]];
                 tris.push_back({v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z});            
+                object_ids.push_back(geometry->index);
             }
         }
     }
+
+    void* object_id_ptr = malloc(object_ids.size() * sizeof(int));
+    memcpy(object_id_ptr, object_ids.data(), object_ids.size() * sizeof(int));
+    const_copy_to("object_id", object_id_ptr, object_ids.size() * sizeof(int));
 
     std::cout << "building..." << std::endl;
     portableRT::selected_backend->set_tris(tris);

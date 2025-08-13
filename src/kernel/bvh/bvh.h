@@ -139,6 +139,15 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
   return false;
 }
 
+ccl_device_intersect std::vector<bool> scene_intersect2(KernelGlobals kg,
+  const std::vector<Ray> &rays,
+  const std::vector<uint> &visibilities,
+  ccl_private std::vector<Intersection>& isects)
+{
+  std::cout << "ERROR THIS SHOULD NOT HAPPEN" << std::endl;
+  return std::vector<bool>(rays.size(), false);
+}
+
 ccl_device_intersect bool scene_intersect_shadow(KernelGlobals kg,
                                                  const ccl_private Ray *ray,
                                                  const uint visibility)

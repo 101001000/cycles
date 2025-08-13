@@ -5,6 +5,7 @@
 #include <cassert>
 #include <climits>
 #include <cstring>
+#include <iostream>
 
 #define __KERNEL_GPU__
 #define __KERNEL_SIMPLE__
@@ -95,6 +96,7 @@ template<typename T>
 ccl_device_forceinline T ccl_gpu_tex_object_read_2D(const ccl_gpu_tex_object_2D texobj,
                                                     const float fx, const float fy)
 {
+  std::cout << "reading 2D text "  << std::endl;
   const CPUTexture2D &tex = *texobj;
 
   /* Coordenadas normalizadas [0..1] → texel */
@@ -114,6 +116,7 @@ template<typename T>
 ccl_device_forceinline T ccl_gpu_tex_object_read_3D(const ccl_gpu_tex_object_3D texobj,
                                                     const float fx, const float fy, const float fz)
 {
+  std::cout << "reading 3D text "  << std::endl;
   const CPUTexture3D &tex = *texobj;
 
   const float u = fx * tex.width  - 0.5f;

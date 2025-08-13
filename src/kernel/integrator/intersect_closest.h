@@ -428,4 +428,105 @@ ccl_device void integrator_intersect_closest(KernelGlobals kg,
       kg, state, &isect, render_buffer, hit);
 }
 
+ccl_device void integrator_intersect_closest2(KernelGlobals kg,
+  std::vector<IntegratorState> states,
+  ccl_global float *ccl_restrict render_buffer)
+{
+PROFILING_INIT(kg, PROFILING_INTERSECT_CLOSEST);
+
+
+std::vector<Ray> rays;
+std::vector<uint> visibilites;
+std::vector<int> last_isect_prims;
+std::vector<int> last_isect_objects;
+std::vector<Intersection> isects;
+
+for(int i = 0; i < states.size(); i++) {
+    Ray ray ccl_optional_struct_init;
+    integrator_state_read_ray(states[i], &ray);
+    kernel_assert(ray.tmax != 0.0f);
+    rays.push_back(ray);
+    const uint visibility = path_state_ray_visibility(states[i]);
+    const int last_isect_prim = INTEGRATOR_STATE(states[i], isect, prim);
+    const int last_isect_object = INTEGRATOR_STATE(states[i], isect, object);
+    visibilites.push_back(visibility);
+    last_isect_prims.push_back(last_isect_prim);
+    last_isect_objects.push_back(last_isect_object);
+
+    if (path_state_ao_bounce(kg, states[i])) {
+      ray.tmax = kernel_data.integrator.ao_bounces_distance;
+
+      if (last_isect_object != OBJECT_NONE) {
+        const float object_ao_distance = kernel_data_fetch(objects, last_isect_object).ao_distance;
+        if (object_ao_distance != 0.0f) {
+          ray.tmax = object_ao_distance;
+        }
+      }
+    }
+
+    Intersection isect ccl_optional_struct_init;
+    isect.object = OBJECT_NONE;
+    isect.prim = PRIM_NONE;
+
+    ray.self.object = last_isect_object;
+    ray.self.prim = last_isect_prim;
+    ray.self.light_object = OBJECT_NONE;
+    ray.self.light_prim = PRIM_NONE;
+    isects.push_back(isect);
+  }
+
+  std::vector<bool> hits = scene_intersect2(kg, rays, visibilites, isects);
+
+
+  for(int i = 0; i < states.size(); i++) {
+
+    if (!hits[i]) {
+      isects[i].prim = PRIM_NONE;
+    }
+
+    const uint32_t path_flag = INTEGRATOR_STATE(states[i], path, flag);
+
+    #ifdef __MNEE__
+
+      if (kernel_data.integrator.use_caustics) {
+
+        bool from_caustic_caster = false;
+        bool from_caustic_receiver = false;
+        if (!(path_flag & PATH_RAY_CAMERA) && last_isect_objects[i] != OBJECT_NONE) {
+          const int object_flags = kernel_data_fetch(object_flag, last_isect_objects[i]);
+          from_caustic_receiver = (object_flags & SD_OBJECT_CAUSTICS_RECEIVER);
+          from_caustic_caster = (object_flags & SD_OBJECT_CAUSTICS_CASTER);
+        }
+
+        const bool has_receiver_ancestor = INTEGRATOR_STATE(states[i], path, mnee) &
+        PATH_MNEE_RECEIVER_ANCESTOR;
+        INTEGRATOR_STATE_WRITE(states[i], path, mnee) &= ~PATH_MNEE_CULL_LIGHT_CONNECTION;
+        if (from_caustic_caster && has_receiver_ancestor) {
+          INTEGRATOR_STATE_WRITE(states[i], path, mnee) |= PATH_MNEE_CULL_LIGHT_CONNECTION;
+        }
+        if (from_caustic_receiver) {
+          INTEGRATOR_STATE_WRITE(states[i], path, mnee) |= PATH_MNEE_RECEIVER_ANCESTOR;
+        }
+      }
+    #endif 
+
+    if (kernel_data.integrator.use_light_mis && !integrator_intersect_skip_lights(kg, states[i])) {
+
+      const int last_type = INTEGRATOR_STATE(states[i], isect, type);
+      hits[i] = lights_intersect(
+      kg, states[i], &rays[i], &isects[i], last_isect_prims[i], last_isect_objects[i], last_type, path_flag) ||
+      hits[i];
+    }
+
+
+    integrator_state_write_isect(states[i], &isects[i]);
+
+
+    integrator_intersect_next_kernel<DEVICE_KERNEL_INTEGRATOR_INTERSECT_CLOSEST>(
+    kg, states[i], &isects[i], render_buffer, hits[i]);
+  }
+
+  
+}
+
 CCL_NAMESPACE_END
