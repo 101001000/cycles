@@ -447,11 +447,7 @@ if(WITH_CYCLES_BLENDER)
   add_subdirectory(blender)
 endif()
 
-set(PORTABLERT_ROOT "${PROJECT_SOURCE_DIR}/third_party/portablert")
-list(APPEND CMAKE_PREFIX_PATH "${PORTABLERT_ROOT}")
-find_package(CUDAToolkit 11.5 REQUIRED)
-find_package(portableRT CONFIG REQUIRED)
-add_library(portablert ALIAS portableRT::portableRT)
+find_package(portableRT REQUIRED)
 
 add_subdirectory(app)
 add_subdirectory(bvh)
