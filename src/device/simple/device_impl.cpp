@@ -3,7 +3,7 @@
 #include "kernel/device/simple/globals.h"
 #include "device/simple/queue.h"
 #include "bvh/bvh2.h"
-#include "../third_party/portablert/include/portableRT/portableRT.hpp"
+#include <portableRT/portableRT.hpp>
 #include "scene/geometry.h"
 #include "scene/mesh.h"
 
@@ -15,11 +15,14 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     kernel_globals.bid = (int*)malloc(sizeof(int));
     simple_set_idx(kernel_globals.idx, kernel_globals.dim, kernel_globals.bid);
     std::cout << "available backends: " << std::endl;
-    for (auto backend : portableRT::available_backends()) {
-        std::cout << backend->name() << " " << std::endl;
+    for (int i = 0; i < prt::available_backends().size(); i++) {
+        std::cout << i << ": " << prt::available_backends()[i]->name() << " " << std::endl;
     }
-    portableRT::select_backend(portableRT::available_backends()[1]);
-    std::cout << "selected backend: " << portableRT::selected_backend->name() << std::endl;
+    std::cout << "select backend: ";
+    int idx;
+    std::cin >> idx;
+    prt::select_backend(prt::available_backends()[idx]);
+    std::cout << "selected backend: " << prt::selected_backend->name() << std::endl;
 }
 
 SimpleDevice::~SimpleDevice() {
@@ -249,7 +252,7 @@ void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
     const_copy_to("object_id", object_id_ptr, object_ids.size() * sizeof(int));
 
     std::cout << "building..." << std::endl;
-    portableRT::selected_backend->set_tris(tris);
+    prt::selected_backend->set_tris(tris);
     std::cout << "built!" << std::endl;
 
 }

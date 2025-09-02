@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "../third_party/portablert/include/portableRT/portableRT.hpp"
+#include <portableRT/portableRT.hpp>
 
 CCL_NAMESPACE_BEGIN
 
@@ -27,13 +27,13 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
         return false;
     }
 
-    portableRT::Ray prt_ray;
+    prt::Ray prt_ray;
     prt_ray.origin = {ray->P.x, ray->P.y, ray->P.z};
     prt_ray.direction = {ray->D.x, ray->D.y, ray->D.z};
     prt_ray.tmin = ray->tmin;
     prt_ray.tmax = ray->tmax;
     prt_ray.self_id = ray->self.prim;
-    auto hits = portableRT::nearest_hits({prt_ray});
+    auto hits = prt::closest_hits({prt_ray});
 
 
     if (!hits[0].valid) {
@@ -60,7 +60,7 @@ ccl_device_intersect std::vector<bool> scene_intersect2(KernelGlobals kg,
     const std::vector<uint> visibilities,
     ccl_private std::vector<Intersection>& isects)
 {
-    std::vector<portableRT::Ray> prt_rays;
+    std::vector<prt::Ray> prt_rays;
     std::vector<bool> r_hits(rays.size(), false);
 
     for(int i = 0; i < rays.size(); i++) {
@@ -75,7 +75,7 @@ ccl_device_intersect std::vector<bool> scene_intersect2(KernelGlobals kg,
             r_hits[i] = false;
         }
 
-        portableRT::Ray prt_ray;
+        prt::Ray prt_ray;
         prt_ray.origin = {rays[i].P.x, rays[i].P.y, rays[i].P.z};
         prt_ray.direction = {rays[i].D.x, rays[i].D.y, rays[i].D.z};
         prt_ray.tmin = rays[i].tmin;
@@ -84,7 +84,7 @@ ccl_device_intersect std::vector<bool> scene_intersect2(KernelGlobals kg,
         prt_rays.push_back(prt_ray);
     }
 
-    auto hits = portableRT::nearest_hits(prt_rays);
+    auto hits = prt::closest_hits(prt_rays);
     
     for(int i = 0; i < hits.size(); i++) {
         r_hits[i] = hits[i].valid;
