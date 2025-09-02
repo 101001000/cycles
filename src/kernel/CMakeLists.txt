@@ -436,7 +436,7 @@ set(SRC_UTIL_HEADERS
 )
 
 set(LIB
-
+portableRT::portableRT
 )
 
 # `Zstd` compressor for kernels.

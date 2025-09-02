@@ -82,6 +82,7 @@ if(EXISTS ${_cycles_lib_dir} AND WITH_LIBS_PRECOMPILED)
   message(STATUS "Using precompiled libraries at ${_cycles_lib_dir}")
 
   _set_default(ALEMBIC_ROOT_DIR "${_cycles_lib_dir}/alembic")
+  _set_default(portableRT_ROOT_DIR "${_cycles_lib_dir}/portablert") #TODO: Move this to precompiled libraries
   _set_default(Boost_ROOT "${_cycles_lib_dir}/boost")
   _set_default(EMBREE_ROOT_DIR "${_cycles_lib_dir}/embree")
   _set_default(EPOXY_ROOT_DIR "${_cycles_lib_dir}/epoxy")
@@ -200,6 +201,22 @@ if(WITH_USD)
     find_package(PythonLibsUnix REQUIRED)
   endif()
 endif()
+
+###########################################################################
+# portableRT
+###########################################################################
+
+ if(EXISTS ${_cycles_lib_dir})
+    # Establecer explícitamente el directorio de configuración de CMake
+    set(portableRT_DIR "${PORTABLERT_ROOT_DIR}/lib/cmake/portableRT")
+    find_package(portableRT REQUIRED)
+  else()
+    find_package(portableRT REQUIRED)
+  endif()
+  
+  # Agregar para bundling
+  add_bundled_libraries(portableRT/lib)
+
 
 ###########################################################################
 # Zlib

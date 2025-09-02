@@ -16,6 +16,8 @@ import make_utils
 from pathlib import Path
 from make_utils import call, check_output
 
+from subprocess import run
+from pathlib import Path
 
 def print_stage(text):
     print("")
@@ -148,3 +150,11 @@ if __name__ == "__main__":
     # Report any skipped repositories at the end, so it's not as easy to miss.
     if cycles_skip_msg:
         print_stage(cycles_skip_msg.strip())
+
+#   root = Path(run([args.git_command, 'rev-parse', '--show-toplevel'], capture_output=True, text=True, check=True).stdout.strip())
+#    run(['ln', '-sfn', 'prt', 'lib/linux_x64/portablert'], check=True, cwd=root)
+    root = Path(run([args.git_command, 'rev-parse', '--show-toplevel'],
+                capture_output=True, text=True, check=True).stdout.strip())
+    link_dir = root / 'lib' / 'linux_x64'
+    target_rel = os.path.relpath(root / 'prt', start=link_dir)
+    run(['ln', '-sfn', target_rel, 'portablert'], check=True, cwd=link_dir)
