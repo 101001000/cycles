@@ -17,19 +17,16 @@
 #endif
 
 
-#define ccl_gpu_kernel_signature(name, ...) simple_##name(__VA_ARGS__)
+#define ccl_gpu_kernel_signature(name, ...) PRT_KERNEL(simple_##name, __VA_ARGS__)
 #define ccl_gpu_kernel_postfix
-#define ccl_gpu_kernel(block_num_threads, thread_num_registers) \
-  void 
-
-#define ccl_gpu_kernel_threads(block_num_threads) \
-  void
+#define ccl_gpu_kernel(block_num_threads, thread_num_registers)
+#define ccl_gpu_kernel_threads(block_num_threads) 
 #define ccl_device
 #define ccl_gpu_shared
-#define ccl_gpu_block_dim_x (*kernel_globals.dim)
-#define ccl_gpu_thread_idx_x (*kernel_globals.idx)
+#define ccl_gpu_block_dim_x 1
+#define ccl_gpu_thread_idx_x 0
 #define ccl_gpu_warp_size 1
-#define ccl_gpu_block_idx_x (*kernel_globals.bid)
+#define ccl_gpu_block_idx_x global_idx
 #define ccl_gpu_syncthreads void
 #define ccl_gpu_ballot(predicate) (predicate ? 1 : 0)
 #define ccl_gpu_kernel_call(x) x

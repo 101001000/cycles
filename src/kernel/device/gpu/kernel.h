@@ -63,6 +63,8 @@ ccl_gpu_kernel(GPU_KERNEL_BLOCK_NUM_THREADS, GPU_KERNEL_MAX_REGISTERS)
 {
   const int state = ccl_gpu_global_id_x();
 
+  std::cout << "state: " << state << std::endl;
+
   if (state < num_states) {
     INTEGRATOR_STATE_WRITE(state, path, queued_kernel) = 0;
     INTEGRATOR_STATE_WRITE(state, shadow_path, queued_kernel) = 0;

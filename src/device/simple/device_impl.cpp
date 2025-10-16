@@ -9,11 +9,11 @@
 
 CCL_NAMESPACE_BEGIN
 
+extern "C" int kernel_force_init();
+static int _force = kernel_force_init();
+
 SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless) : GPUDevice(info, stats, profiler, headless) {
-    kernel_globals.idx = (int*)malloc(sizeof(int));
-    kernel_globals.dim = (int*)malloc(sizeof(int));
-    kernel_globals.bid = (int*)malloc(sizeof(int));
-    simple_set_idx(kernel_globals.idx, kernel_globals.dim, kernel_globals.bid);
+
     std::cout << "available backends: " << std::endl;
     for (int i = 0; i < prt::available_backends().size(); i++) {
         std::cout << i << ": " << prt::available_backends()[i]->name() << " " << std::endl;
@@ -22,20 +22,37 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     int idx;
     std::cin >> idx;
     prt::select_backend(prt::available_backends()[idx]);
+    m_backend = prt::selected_backend;
     std::cout << "selected backend: " << prt::selected_backend->name() << std::endl;
+    m_backend->global_alloc("kernel_globals", sizeof(KernelGlobalsGPU));
+
+    std::cout << "showing all kernels:" << std::endl;
+    for (auto [name, fn] : prt::kernels_) {
+        std::cout << "Listing kernel " << name << std::endl;
+    }
+
+    for (auto [name, data] : prt::embeded_kernels_) {
+        std::cout << "Listing embeded kernel " << name << std::endl;
+        std::cout << data << std::endl;
+    }
+
+    std::cout << "test" << std::endl;
+
+    for (auto [name, size] : prt::global_vars_) {
+        std::cout << "Listing global " << name << " of size " << size << std::endl;
+    }
+
 }
 
 SimpleDevice::~SimpleDevice() {
-    free(kernel_globals.idx);
-    free(kernel_globals.dim);
-    free(kernel_globals.bid);
+    m_backend->global_free("kernel_globals");
 }
 
 
 void SimpleDevice::global_free(device_memory &mem)
 {
   if (mem.device_pointer) {
-    free((void *)mem.device_pointer); 
+    m_backend->device_free((void *)mem.device_pointer); 
     mem.device_pointer = 0;
     stats.mem_free(mem.device_size);
     mem.device_size = 0;
@@ -79,29 +96,27 @@ void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size
 
     std::cout << "const copying " << name << " to device (" << size << " bytes)" << std::endl;
 
-    //void* ptr = malloc(size);
-    //memcpy(ptr, host, size);
+
+    KernelGlobalsGPU kg_host;
+    m_backend->global_copy_from("kernel_globals", &kg_host, sizeof(KernelGlobalsGPU));
+
     void* ptr = host;
 
-    if (strcmp(name, "data") == 0) { kernel_globals.__data = (KernelData *)ptr;
-        simple_set_data(ptr);
-        return; }
-    if (strcmp(name, "integrator_state") == 0) {
-        kernel_globals.integrator_state = (IntegratorStateGPU *)ptr;
-        simple_set_integrator_state(ptr);   
-        return;
+    if (strcmp(name, "data") == 0) {
+        kg_host.__data = (KernelData *)ptr;
+    } else if (strcmp(name, "integrator_state") == 0) {
+        kg_host.integrator_state = (IntegratorStateGPU *)ptr;
     }
+
     #define KERNEL_DATA_ARRAY(t, nm)                                                     \
     if (strcmp(name, #nm) == 0) {                                                      \
-      kernel_globals.__##nm = (const t *)ptr;                                          \
-      simple_set_data_array(#nm, ptr);                                                 \
-      return;                                                                          \
+      kg_host.__##nm = (const t *)ptr;                                          \
     }
     KERNEL_DATA_ARRAY(int, object_id)
     #include "kernel/data_arrays.h"
     #undef KERNEL_DATA_ARRAY
 
-    assert(false && "nombre desconocido");
+    m_backend->global_copy_to("kernel_globals", &kg_host, sizeof(KernelGlobalsGPU));
 }
 
 void SimpleDevice::global_alloc(device_memory &mem)

@@ -1,6 +1,6 @@
 #include "device/device.h"
 #include "kernel/device/simple/globals.h"
-
+#include <portableRT/portableRT.hpp>
 CCL_NAMESPACE_BEGIN
 
 class SimpleDevice : public GPUDevice {
@@ -33,7 +33,9 @@ public:
     void global_free(device_memory &mem);
     void global_copy_to(device_memory &mem);
 
-    KernelGlobalsGPU kernel_globals{};
+
+    prt::Backend* m_backend;
+
 };
 
 CCL_NAMESPACE_END

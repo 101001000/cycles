@@ -22,20 +22,9 @@ struct KernelGlobalsGPU {
     #undef KERNEL_DATA_ARRAY
       const KernelData *__data;
       IntegratorStateGPU *integrator_state;
-      int* idx;
-      int* dim;
-      int* bid;
 };
 
 using KernelGlobals = ccl_global KernelGlobalsGPU *ccl_restrict;
-
-extern "C" void simple_set_integrator_state(void *ptr);
-extern "C" void simple_set_data_array(const char *name, const void *ptr);
-extern "C" void simple_set_data(void *ptr);
-extern "C" void simple_set_idx(int *idx, int *dim, int *bid);
-
-
-extern "C" __attribute__((visibility("default"))) KernelGlobalsGPU kernel_globals;
 
 template<typename T>
 ccl_device_inline const T &kernel_data_fetch_dbg_ref(const char *nm,
@@ -52,10 +41,10 @@ ccl_device_inline const T &kernel_data_fetch_dbg_ref(const char *nm,
   return base[i];            
 }
 
-#define kernel_data (*(kernel_globals.__data))
+#define kernel_data (*get_global_ptr(KernelGlobalsGPU, kernel_globals)->__data)
 #define kernel_data_fetch(name, index) \
-  kernel_data_fetch_dbg_ref(#name, kernel_globals.__##name, (index))
-#define kernel_data_array(name) (kernel_globals.__##name)
-#define kernel_integrator_state (*(kernel_globals.integrator_state))
+  kernel_data_fetch_dbg_ref(#name, get_global_ptr(KernelGlobalsGPU, kernel_globals)->__##name, (index))
+#define kernel_data_array(name) (get_global_ptr(KernelGlobalsGPU, kernel_globals)->__##name)
+#define kernel_integrator_state (*get_global_ptr(KernelGlobalsGPU, kernel_globals)->integrator_state)
 
 CCL_NAMESPACE_END

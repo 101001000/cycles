@@ -1287,7 +1287,6 @@ cycles_add_library(cycles_kernel "${LIB}"
   ${SRC_KERNEL_DEVICE_HIPRT}
   ${SRC_KERNEL_DEVICE_OPTIX}
   ${SRC_KERNEL_DEVICE_METAL}
-  ${SRC_KERNEL_DEVICE_SIMPLE}
   ${SRC_KERNEL_HEADERS}
   ${SRC_KERNEL_DEVICE_CPU_HEADERS}
   ${SRC_KERNEL_DEVICE_GPU_HEADERS}
@@ -1340,6 +1339,8 @@ cycles_add_gpu_kernel_dependencies(cycles_kernel_hip)
 cycles_add_gpu_kernel_dependencies(cycles_kernel_hiprt)
 cycles_add_gpu_kernel_dependencies(cycles_kernel_oneapi)
 cycles_add_gpu_kernel_dependencies(cycles_kernel_simple)
+
+prt_set_kernels(cycles_kernel device/simple/kernel.cpp)
 
 # Install kernel source for runtime compilation
 
