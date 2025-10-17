@@ -146,6 +146,7 @@ set(SRC_KERNEL_DEVICE_ONEAPI_HEADERS
 set(SRC_KERNEL_DEVICE_SIMPLE_HEADERS
   device/simple/config.h
   device/simple/globals.h
+  device/simple/compat.h
 )
 
 set(SRC_KERNEL_CLOSURE_HEADERS
@@ -1340,6 +1341,10 @@ cycles_add_gpu_kernel_dependencies(cycles_kernel_hiprt)
 cycles_add_gpu_kernel_dependencies(cycles_kernel_oneapi)
 cycles_add_gpu_kernel_dependencies(cycles_kernel_simple)
 
+#set(USE_OPTIX ON)
+#set(OptiX_ROOT /homelocal/encalle_local/Downloads/NVIDIA-OptiX-SDK-7.5.0-linux64-x86_64)
+#set(USE_SYCL ON)
+#set(DPCPP_ROOT /homelocal/encalle_local/Desktop/CleanBuilds/dpc++6.1.0)
 prt_set_kernels(cycles_kernel device/simple/kernel.cpp)
 
 # Install kernel source for runtime compilation

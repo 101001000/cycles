@@ -121,8 +121,8 @@ void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size
 
 void SimpleDevice::global_alloc(device_memory &mem)
 {
-    void *ptr = malloc(mem.memory_size());
-    memcpy(ptr, mem.host_pointer, mem.memory_size());
+    void *ptr = m_backend->device_malloc(mem.memory_size());
+    m_backend->device_copy_to(ptr, mem.host_pointer, mem.memory_size());
 
     mem.device_pointer = (device_ptr)ptr;
     mem.device_size    = mem.memory_size();
@@ -132,7 +132,7 @@ void SimpleDevice::global_alloc(device_memory &mem)
 }
 void SimpleDevice::mem_alloc(device_memory &mem){
     if (mem.type == MEM_DEVICE_ONLY) {
-        void *data = malloc(mem.memory_size());
+        void *data = m_backend->device_malloc(mem.memory_size());
         mem.device_pointer = (device_ptr)data;
     }
     else {
@@ -196,12 +196,12 @@ void SimpleDevice::get_device_memory_info(size_t &total, size_t &free){
     free  = static_cast<size_t>(info.freeram) * info.mem_unit;
 }
 bool SimpleDevice::alloc_device(void *&device_pointer, const size_t size){
-    device_pointer = malloc(size);
+    device_pointer = m_backend->device_malloc(size);
     return device_pointer != nullptr;
 }
 void SimpleDevice::free_device(void *device_pointer){
     if(device_pointer){
-        free(device_pointer);
+        m_backend->device_free(device_pointer);
     }
 }
 bool SimpleDevice::shared_alloc(void *&shared_pointer, const size_t size){
@@ -214,7 +214,7 @@ void *SimpleDevice::shared_to_device_pointer(const void *shared_pointer){
     return (void *)shared_pointer;
 }
 void SimpleDevice::copy_host_to_device(void *device_pointer, void *host_pointer, const size_t size){
-    memcpy(device_pointer, host_pointer, size);
+    m_backend->device_copy_to(device_pointer, host_pointer, size);
 }
 
 unique_ptr<DeviceQueue> SimpleDevice::gpu_queue_create() {
@@ -262,8 +262,8 @@ void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
         }
     }
 
-    void* object_id_ptr = malloc(object_ids.size() * sizeof(int));
-    memcpy(object_id_ptr, object_ids.data(), object_ids.size() * sizeof(int));
+    void* object_id_ptr = m_backend->device_malloc(object_ids.size() * sizeof(int));
+    m_backend->device_copy_to(object_id_ptr, object_ids.data(), object_ids.size() * sizeof(int));
     const_copy_to("object_id", object_id_ptr, object_ids.size() * sizeof(int));
 
     std::cout << "building..." << std::endl;

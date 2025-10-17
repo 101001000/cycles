@@ -1,5 +1,12 @@
+#ifdef OPTIX_KERNEL
+  #include "../cuda/compat.h"
+#endif
 
-#include "kernel/device/simple/config.h"
+#ifdef CPU_KERNEL
+  #include "compat.h"
+  //#include "../cpu/compat.h"
+#endif
+
 #include "kernel/device/simple/globals.h"
 
 #define PRT_GLOBALS PRT_GVAR(kernel_globals, KernelGlobalsGPU)
