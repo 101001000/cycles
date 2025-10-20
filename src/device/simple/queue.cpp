@@ -52,8 +52,8 @@ CCL_NAMESPACE_BEGIN
 SimpleDeviceQueue::SimpleDeviceQueue(SimpleDevice *device) : DeviceQueue(device), device(device) {}
 SimpleDeviceQueue::~SimpleDeviceQueue() {}
 
-int SimpleDeviceQueue::num_concurrent_states(const size_t state_size) const { return 1; }
-int SimpleDeviceQueue::num_concurrent_busy_states(const size_t state_size) const { return 1; }
+int SimpleDeviceQueue::num_concurrent_states(const size_t state_size) const { return 1048576; }
+int SimpleDeviceQueue::num_concurrent_busy_states(const size_t state_size) const { return 64; }
 void SimpleDeviceQueue::init_execution() {
     debug_init_execution();
 }
@@ -82,7 +82,7 @@ std::string type_to_string(DeviceKernelArguments::Type type) {
 
 bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const DeviceKernelArguments &args) {
 
-    std::cout << "Enqueueing kernel " << kernel << " with work size " << work_size << std::endl;
+   // std::cout << "Enqueueing kernel " << kernel << " with work size " << work_size << " and args size " << args.count << std::endl;
 
     debug_enqueue_begin(kernel, work_size); 
 
@@ -96,10 +96,15 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
         struct KernelArgs {
             int *path_index_array;
             float *render_buffer;
+            int work_size;
         };
+
+        assert(args.count == 3);
+        
         KernelArgs ka;
         ka.path_index_array = get_pointer<int>(args.values[0]);
         ka.render_buffer = get_pointer<float>(args.values[1]);
+        ka.work_size = get_scalar<int>(args.values[2]);
         device->m_backend->parallel_invoke("simple_integrator_intersect_closest", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
@@ -111,6 +116,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             float *render_buffer;
             int max_tile_work;
         };
+
+        assert(args.count == 4);
+
         KernelArgs ka;
         ka.tiles = get_pointer<ccl::KernelWorkTile>(args.values[0]);
         ka.num_tiles = get_scalar<int>(args.values[1]);
@@ -124,6 +132,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
         struct KernelArgs {
             int num_states;
         };
+
+        assert(args.count == 1);
+        
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
         std::cout << "Invocando simple_integrator_reset" <<  ka.num_states  << std::endl;
@@ -137,6 +148,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int *prefix_sum;
             int num_values;
         };
+
+        assert(args.count == 3);
+
         KernelArgs ka;
         ka.counter = get_pointer<int>(args.values[0]);
         ka.prefix_sum = get_pointer<int>(args.values[1]);
@@ -155,6 +169,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int *key_prefix_sum;
             int kernel_index;
         };
+
+        assert(args.count == 7);
+        
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
         ka.num_states_limit = get_scalar<int>(args.values[1]);
@@ -173,10 +190,13 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             float *render_buffer;
             int work_size;
         };
+
+        assert(args.count == 3);
+        
         KernelArgs ka;
         ka.path_index_array = get_pointer<int>(args.values[0]);
         ka.render_buffer = get_pointer<float>(args.values[1]);
-        ka.work_size = work_size;
+        ka.work_size = get_scalar<int>(args.values[2]);
         device->m_backend->parallel_invoke("simple_integrator_shade_surface", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
@@ -187,10 +207,13 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             float *render_buffer;
             int work_size;
         };
+
+        assert(args.count == 3);
+
         KernelArgs ka;
         ka.path_index_array = get_pointer<int>(args.values[0]);
         ka.render_buffer = get_pointer<float>(args.values[1]);
-        ka.work_size = work_size;
+        ka.work_size = get_scalar<int>(args.values[2]);
         device->m_backend->parallel_invoke("simple_integrator_shade_background", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
@@ -202,6 +225,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int *num_indices;
             int kernel_index;
         };
+
+        assert(args.count == 4);
+
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
         ka.indices = get_pointer<int>(args.values[1]);
@@ -218,6 +244,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int *num_indices;
             int num_active_paths;
         };
+
+        assert(args.count == 4);
+
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
         ka.indices = get_pointer<int>(args.values[1]);
@@ -234,6 +263,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int *num_indices;
             int indices_offset;
         };
+
+        assert(args.count == 4);
+
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
         ka.indices = get_pointer<int>(args.values[1]);
@@ -250,6 +282,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int terminated_states_offset;
             int work_size;
         };
+
+        assert(args.count == 4);
+
         KernelArgs ka;
         ka.active_terminated_states = get_pointer<int>(args.values[0]);
         ka.active_states_offset = get_scalar<int>(args.values[1]);
@@ -269,6 +304,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int stride;
             uint *num_active_pixels;
         };
+
+        assert(args.count == 9);
+
         KernelArgs ka;
         ka.render_buffer = get_pointer<float>(args.values[0]);
         ka.sx = get_scalar<int>(args.values[1]);
@@ -290,10 +328,13 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             float *render_buffer;
             int work_size;
         };
+
+        assert(args.count == 3);
+
         KernelArgs ka;
         ka.path_index_array = get_pointer<int>(args.values[0]);
         ka.render_buffer = get_pointer<float>(args.values[1]);
-        ka.work_size = work_size;
+        ka.work_size = get_scalar<int>(args.values[2]);
         device->m_backend->parallel_invoke("simple_integrator_shade_light", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
@@ -305,6 +346,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int offset;
             int stride;
         };
+
+        assert(args.count == 6);
+
         KernelArgs ka;
         ka.render_buffer = get_pointer<float>(args.values[0]);
         ka.sx = get_scalar<int>(args.values[1]);
@@ -324,6 +368,9 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             int offset;
             int stride;
         };
+
+        assert(args.count == 6);
+
         KernelArgs ka;
         ka.render_buffer = get_pointer<float>(args.values[0]);
         ka.sx = get_scalar<int>(args.values[1]);

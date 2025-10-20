@@ -6,13 +6,19 @@
 #include <portableRT/portableRT.hpp>
 #include "scene/geometry.h"
 #include "scene/mesh.h"
+#include <dlfcn.h>
 
 CCL_NAMESPACE_BEGIN
 
 extern "C" int kernel_force_init();
 static int _force = kernel_force_init();
 
+
 SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless) : GPUDevice(info, stats, profiler, headless) {
+
+    prt::kernelapi_init({{"kernel_globals", sizeof(KernelGlobalsGPU)}});
+
+    std::cout << "test2" << std::endl;
 
     std::cout << "available backends: " << std::endl;
     for (int i = 0; i < prt::available_backends().size(); i++) {
@@ -26,14 +32,16 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     std::cout << "selected backend: " << prt::selected_backend->name() << std::endl;
     m_backend->global_alloc("kernel_globals", sizeof(KernelGlobalsGPU));
 
+    
+    
+
     std::cout << "showing all kernels:" << std::endl;
     for (auto [name, fn] : prt::kernels_) {
         std::cout << "Listing kernel " << name << std::endl;
     }
 
-    for (auto [name, data] : prt::embeded_kernels_) {
-        std::cout << "Listing embeded kernel " << name << std::endl;
-        std::cout << data << std::endl;
+    for (auto [data, size] : prt::embeded_kernels_) {
+        std::cout << "Listing embeded kernel " << size << std::endl;
     }
 
     std::cout << "test" << std::endl;
@@ -121,8 +129,8 @@ void SimpleDevice::const_copy_to(const char *name, void *host, const size_t size
 
 void SimpleDevice::global_alloc(device_memory &mem)
 {
-    void *ptr = m_backend->device_malloc(mem.memory_size());
-    m_backend->device_copy_to(ptr, mem.host_pointer, mem.memory_size());
+    void *ptr = malloc(mem.memory_size());
+    memcpy(ptr, mem.host_pointer, mem.memory_size());
 
     mem.device_pointer = (device_ptr)ptr;
     mem.device_size    = mem.memory_size();
@@ -132,7 +140,7 @@ void SimpleDevice::global_alloc(device_memory &mem)
 }
 void SimpleDevice::mem_alloc(device_memory &mem){
     if (mem.type == MEM_DEVICE_ONLY) {
-        void *data = m_backend->device_malloc(mem.memory_size());
+        void *data = malloc(mem.memory_size());
         mem.device_pointer = (device_ptr)data;
     }
     else {
@@ -171,13 +179,11 @@ void SimpleDevice::mem_zero(device_memory &mem){
 void SimpleDevice::mem_free(device_memory &mem){
     if (mem.type == MEM_GLOBAL) {
         global_free(mem);
-    }
-    else if (mem.type == MEM_TEXTURE) {
+    } else if (mem.type == MEM_TEXTURE) {
         tex_free((device_texture &)mem);
-    }
-    else if (mem.device_pointer) {
+    } else if (mem.device_pointer) {
         if (mem.type == MEM_DEVICE_ONLY) {
-          util_aligned_free((void *)mem.device_pointer, mem.memory_size());
+            free((void*)mem.device_pointer);   
         }
         mem.device_pointer = 0;
         mem.device_size = 0;
@@ -196,12 +202,12 @@ void SimpleDevice::get_device_memory_info(size_t &total, size_t &free){
     free  = static_cast<size_t>(info.freeram) * info.mem_unit;
 }
 bool SimpleDevice::alloc_device(void *&device_pointer, const size_t size){
-    device_pointer = m_backend->device_malloc(size);
+    device_pointer = malloc(size);
     return device_pointer != nullptr;
 }
 void SimpleDevice::free_device(void *device_pointer){
     if(device_pointer){
-        m_backend->device_free(device_pointer);
+        free(device_pointer);
     }
 }
 bool SimpleDevice::shared_alloc(void *&shared_pointer, const size_t size){
@@ -214,7 +220,7 @@ void *SimpleDevice::shared_to_device_pointer(const void *shared_pointer){
     return (void *)shared_pointer;
 }
 void SimpleDevice::copy_host_to_device(void *device_pointer, void *host_pointer, const size_t size){
-    m_backend->device_copy_to(device_pointer, host_pointer, size);
+    memcpy(device_pointer, host_pointer, size);
 }
 
 unique_ptr<DeviceQueue> SimpleDevice::gpu_queue_create() {
@@ -262,8 +268,8 @@ void SimpleDevice::build_bvh(BVH *bvh, Progress &progress, bool refit){
         }
     }
 
-    void* object_id_ptr = m_backend->device_malloc(object_ids.size() * sizeof(int));
-    m_backend->device_copy_to(object_id_ptr, object_ids.data(), object_ids.size() * sizeof(int));
+    void* object_id_ptr = malloc(object_ids.size() * sizeof(int));
+    memcpy(object_id_ptr, object_ids.data(), object_ids.size() * sizeof(int));
     const_copy_to("object_id", object_id_ptr, object_ids.size() * sizeof(int));
 
     std::cout << "building..." << std::endl;

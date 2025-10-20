@@ -24,6 +24,7 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
     isect->object = OBJECT_NONE;
     isect->type = PRIMITIVE_NONE;
 
+
     if(!scene_intersect_valid(ray)) {
         return false;
     }

@@ -343,6 +343,7 @@ ccl_device void integrator_intersect_closest(KernelGlobals kg,
                                              IntegratorState state,
                                              ccl_global float *ccl_restrict render_buffer)
 {
+
   PROFILING_INIT(kg, PROFILING_INTERSECT_CLOSEST);
 
   /* Read ray from integrator state into local memory. */

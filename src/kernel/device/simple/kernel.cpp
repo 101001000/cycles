@@ -1,12 +1,12 @@
 #ifdef OPTIX_KERNEL
-  #include "../cuda/compat.h"
+  #include "kernel/device/cuda/compat.h"
 #endif
 
 #ifdef CPU_KERNEL
-  #include "compat.h"
-  //#include "../cpu/compat.h"
+  #include "kernel/device/simple/compat.h"
 #endif
 
+#include "kernel/device/simple/config.h"
 #include "kernel/device/simple/globals.h"
 
 #define PRT_GLOBALS PRT_GVAR(kernel_globals, KernelGlobalsGPU)
@@ -18,7 +18,7 @@
 
 
 static auto run = [](){
-  std::cout << "KERNEL.CPP!!!" << std::endl;
+  //std::cout << "KERNEL.CPP!!!" << std::endl;
   return 0;
 }();
 
