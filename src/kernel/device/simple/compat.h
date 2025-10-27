@@ -55,6 +55,7 @@
 #define ccl_optional_struct_init
 #define ccl_device_noinline_cpu ccl_device
 #define __device__
+#define ccl_gpu_global_id_x() global_idx
 
 #define ccl_gpu_kernel_lambda(func, ...) \
   struct KernelLambda { \

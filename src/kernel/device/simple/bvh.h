@@ -17,6 +17,7 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
     const uint visibility,
     ccl_private Intersection *isect)
 {
+
     isect->t = ray->tmax;
     isect->u = 0.0f;
     isect->v = 0.0f;
@@ -42,9 +43,7 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
         return false;
     }
 
-    const int id = kernel_data_fetch(object_id, hit.primitive_id);
-
-    //std::cout << id << std::endl;
+    const int id = kernel_data_fetch(object_ids, hit.primitive_id);
 
     isect->t = hit.t;
     isect->u = hit.u;

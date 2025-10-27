@@ -1,51 +1,6 @@
 #include "device/simple/queue.h"
 #include "device/simple/device_impl.h"
 
-struct KernelWorkTile;
-
-extern void simple_integrator_init_from_camera(KernelWorkTile *tiles,
-    int                    num_tiles,
-    float                 *render_buffer,
-    int                    max_tile_work_size);
-
-extern void simple_integrator_reset(const int num_states);
-
-extern void simple_integrator_intersect_closest(const int *path_index_array,
-    float *render_buffer,
-    const int work_size);
-
-extern void simple_integrator_intersect_closest2(const int *path_index_array,
-    float *render_buffer,
-    const int work_size);
-
-extern void simple_prefix_sum(int *counter, int *prefix_sum, const int num_values);
-
-extern void simple_integrator_sorted_paths_array(const int num_states, const int num_states_limit, int *indices, int *num_indices, int *key_counter, int *key_prefix_sum, const int kernel_index);
-
-extern void simple_integrator_shade_surface(const int *path_index_array,
-                                            float *render_buffer,
-                                            const int work_size);
-
-
-extern void simple_integrator_shade_background(const int *path_index_array,
-                                            float *render_buffer,
-                                            const int work_size);
-
-extern void simple_integrator_queued_paths_array(const int num_states, int *indices, int *num_indices, const int kernel_index);
-
-extern void simple_integrator_compact_paths_array(const int num_states, int *indices, int *num_indices, const int num_active_paths);
-
-extern void simple_integrator_terminated_paths_array(const int num_states, int *indices, int *num_indices, const int indices_offset);
-
-extern void simple_integrator_compact_states(const int *active_terminated_states, const int active_states_offset, const int terminated_states_offset, const int work_size);
-
-extern void simple_adaptive_sampling_convergence_check(float *render_buffer, const int sx, const int sy, const int sw, const int sh, const float threshold, const int reset, const int offset, const int stride, uint *num_active_pixels);
-
-extern void simple_integrator_shade_light(const int *path_index_array, float *render_buffer, const int work_size);
-
-extern void simple_adaptive_sampling_filter_y(float *render_buffer, const int sx, const int sy, const int sw, const int sh, const int offset, const int stride);
-extern void simple_adaptive_sampling_filter_x(float *render_buffer, const int sx, const int sy, const int sw, const int sh, const int offset, const int stride);
-
 CCL_NAMESPACE_BEGIN
 
 
@@ -82,7 +37,8 @@ std::string type_to_string(DeviceKernelArguments::Type type) {
 
 bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const DeviceKernelArguments &args) {
 
-   // std::cout << "Enqueueing kernel " << kernel << " with work size " << work_size << " and args size " << args.count << std::endl;
+    std::cout << "Enqueueing kernel " << kernel << " with work size " << work_size << " and args size " << args.count << std::endl;
+
 
     debug_enqueue_begin(kernel, work_size); 
 
@@ -116,14 +72,15 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
             float *render_buffer;
             int max_tile_work;
         };
-
+       
         assert(args.count == 4);
 
         KernelArgs ka;
         ka.tiles = get_pointer<ccl::KernelWorkTile>(args.values[0]);
         ka.num_tiles = get_scalar<int>(args.values[1]);
         ka.render_buffer = get_pointer<float>(args.values[2]);
-        ka.max_tile_work = get_scalar<int>(args.values[3]);
+        ka.max_tile_work = get_scalar<int>(args.values[3]);        
+
         device->m_backend->parallel_invoke("simple_integrator_init_from_camera", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
@@ -535,8 +492,41 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
 }
 bool SimpleDeviceQueue::synchronize() { return true; }
 void SimpleDeviceQueue::zero_to_device(device_memory &mem) {device->mem_zero(mem);}
-void SimpleDeviceQueue::copy_to_device(device_memory &mem) {device->mem_copy_to(mem);}
-void SimpleDeviceQueue::copy_from_device(device_memory &mem) {device->mem_copy_from(mem,0,0,0,0);}
+void SimpleDeviceQueue::copy_to_device(device_memory &mem) {
+
+    std::cout << "queue copy_to_device " << mem.name << std::endl;
+  assert(mem.type != MEM_GLOBAL && mem.type != MEM_TEXTURE);
+
+  if (mem.memory_size() == 0) {
+    return;
+  }
+
+  /* Allocate on demand. */
+  if (mem.device_pointer == 0) {
+    device->mem_alloc(mem);
+  }
+
+  assert(mem.device_pointer != 0);
+  assert(mem.host_pointer != nullptr);
+
+  device->m_backend->device_copy_to((char *)mem.device_pointer, (char *)mem.host_pointer, mem.memory_size());
+
+}
+void SimpleDeviceQueue::copy_from_device(device_memory &mem) {
+
+    std::cout << "queue copy_from_device " << mem.name << std::endl;
+  assert(mem.type != MEM_GLOBAL && mem.type != MEM_TEXTURE);
+
+  if (mem.memory_size() == 0) {
+    return;
+  }
+
+  assert(mem.device_pointer != 0);
+  assert(mem.host_pointer != nullptr);
+
+  device->m_backend->device_copy_from((char *)mem.host_pointer, (char *)mem.device_pointer, mem.memory_size());
+
+}
 bool SimpleDeviceQueue::supports_local_atomic_sort() const { return false; }
 
 CCL_NAMESPACE_END

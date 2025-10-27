@@ -29,10 +29,13 @@ public:
 
     void tex_alloc(device_texture &mem);
     void tex_free(device_texture &mem);
+    void tex_copy_to(device_texture &mem);
     void global_alloc(device_memory &mem);
     void global_free(device_memory &mem);
     void global_copy_to(device_memory &mem);
+    device_ptr mem_alloc_sub_ptr(device_memory &mem, const size_t offset, size_t /*size*/) override;
 
+    device_vector<int> object_ids_mem;
 
     prt::Backend* m_backend;
 

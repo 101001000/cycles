@@ -15,13 +15,17 @@ CCL_NAMESPACE_BEGIN
 struct IntegratorStateGPU;
 
 struct KernelGlobalsGPU {
+  int unused[1];
+};
 
-    #define KERNEL_DATA_ARRAY(type, name) const type *__##name = nullptr;
-    KERNEL_DATA_ARRAY(int, object_id)
+struct KernelParamsSimple {
+
+    #define KERNEL_DATA_ARRAY(type, name) const type *name = nullptr;
+    KERNEL_DATA_ARRAY(int, object_ids)
     #include "kernel/data_arrays.h"
     #undef KERNEL_DATA_ARRAY
-      const KernelData *__data;
-      IntegratorStateGPU *integrator_state;
+      KernelData data;
+      IntegratorStateGPU integrator_state;
 };
 
 using KernelGlobals = ccl_global KernelGlobalsGPU *ccl_restrict;
@@ -29,8 +33,12 @@ using KernelGlobals = ccl_global KernelGlobalsGPU *ccl_restrict;
 template<typename T>
 ccl_device_inline const T &kernel_data_fetch_dbg_ref(const char *nm,
                                                     const T     *base,
-                                                    size_t       i)
-{/*
+                                                    size_t       i,
+                                                    void     *base2)
+{
+
+  printf("kernel_data_fetch_dbg_ref %s %p %zu %p\n", nm, base, i, base2);
+  /*
   if(static_cast<int>(i) < 0){
     std::cout << "WRONG ACCESS [device] " << nm << " = " << static_cast<const void *>(base) << " idx " << i
             << std::endl;
@@ -41,10 +49,10 @@ ccl_device_inline const T &kernel_data_fetch_dbg_ref(const char *nm,
   return base[i];            
 }
 
-#define kernel_data (*get_global_ptr(KernelGlobalsGPU, kernel_globals)->__data)
+#define kernel_data (get_global_value(KernelParamsSimple, kernel_globals).data)
 #define kernel_data_fetch(name, index) \
-  kernel_data_fetch_dbg_ref(#name, get_global_ptr(KernelGlobalsGPU, kernel_globals)->__##name, (index))
-#define kernel_data_array(name) (get_global_ptr(KernelGlobalsGPU, kernel_globals)->__##name)
-#define kernel_integrator_state (*get_global_ptr(KernelGlobalsGPU, kernel_globals)->integrator_state)
+  kernel_data_fetch_dbg_ref(#name, get_global_value(KernelParamsSimple, kernel_globals).name, (index), &get_global_value(KernelParamsSimple, kernel_globals))
+#define kernel_data_array(name) (get_global_value(KernelParamsSimple, kernel_globals).name)
+#define kernel_integrator_state (get_global_value(KernelParamsSimple, kernel_globals).integrator_state)
 
 CCL_NAMESPACE_END
