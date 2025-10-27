@@ -7,6 +7,7 @@
 #include "scene/geometry.h"
 #include "scene/mesh.h"
 #include <dlfcn.h>
+#include <cinttypes>
 
 CCL_NAMESPACE_BEGIN
 
@@ -16,7 +17,7 @@ static int _force = kernel_force_init();
 
 SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless) : GPUDevice(info, stats, profiler, headless), object_ids_mem(this, "object_ids", MEM_GLOBAL) {
 
-    prt::kernelapi_init({{"kernel_globals", sizeof(KernelParamsSimple)}});
+    prt::kernelapi_init({{"kernel_globals", sizeof(KernelParamsSimple)}, {"warp_offset", sizeof(int*)}});
 
     std::cout << "test2" << std::endl;
 
@@ -31,6 +32,9 @@ SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profi
     m_backend = prt::selected_backend;
     std::cout << "selected backend: " << prt::selected_backend->name() << std::endl;
     m_backend->global_alloc("kernel_globals", sizeof(KernelParamsSimple));
+    m_backend->global_alloc("warp_offset", sizeof(int*));
+    void* warp_offset = m_backend->device_malloc(sizeof(int) * (1024 + 1));
+    m_backend->global_copy_to("warp_offset", &warp_offset, sizeof(int*));
 
     
     
@@ -56,7 +60,6 @@ SimpleDevice::~SimpleDevice() {
     m_backend->global_free("kernel_globals");
 }
 
-
 void SimpleDevice::global_free(device_memory &mem)
 {
   //check
@@ -76,6 +79,7 @@ void SimpleDevice::tex_free(device_texture &mem)
   throw std::runtime_error("Texture deallocation not supported");
 }
 
+
 BVHLayoutMask SimpleDevice::get_bvh_layout_mask(const uint kernel_features) const {return BVH_LAYOUT_SIMPLE;}
 void SimpleDevice::const_copy_to(const char *name, void *host_ptr, const size_t size)
 {
@@ -86,6 +90,18 @@ void SimpleDevice::const_copy_to(const char *name, void *host_ptr, const size_t 
     #define KERNEL_DATA_ARRAY(t, nm) \
       if (strcmp(name, #nm) == 0) { \
         m_backend->device_copy_to(kg_ptr + offsetof(KernelParamsSimple, nm), host_ptr, size); \
+        if(strcmp(name, "lookup_table") == 0){ \
+            std::cout << "PRINTING " << name << std::endl; \
+            void* dev_ptr = nullptr; \
+            m_backend->device_copy_from(&dev_ptr, \
+                kg_ptr + offsetof(KernelParamsSimple, lookup_table), \
+                sizeof(dev_ptr)); \
+            char first4[4]; \
+            m_backend->device_copy_from(first4, dev_ptr + 21759 * sizeof(float), sizeof(first4)); \
+            for (int i = 0; i < 4; ++i) \
+                std::cout << "byte " << i << ": " << int(first4[i]) << "\n";  \
+            printf("%p %p %p\n", kg_ptr + offsetof(KernelParamsSimple, lookup_table), dev_ptr, kg_ptr); \
+        } \
         return; \
       }
     KERNEL_DATA_ARRAY(int, object_ids)
@@ -121,7 +137,7 @@ void SimpleDevice::mem_alloc(device_memory &mem){
   }
 }
 
-void print_mem(device_memory &mem){
+void print_mem(SimpleDevice *device, device_memory &mem){
   int max_it = 8;
   std::cout << "printing mem " << mem.name << " (" << mem.memory_size() << " bytes)" << std::endl;
   std::cout << "host:" << std::endl;
@@ -132,8 +148,10 @@ void print_mem(device_memory &mem){
       }
   }
   std::cout << "device:" << std::endl;
+  void* host_ptr = malloc(mem.memory_size());
+  device->m_backend->device_copy_from(host_ptr, (void*)mem.device_pointer, mem.memory_size());
   for(int i = 0; i < mem.memory_size(); ++i){
-      std::cout << "byte " << i << ": " << (int)((char*)mem.device_pointer)[i] << std::endl;
+      std::cout << "byte " << i << ": " << (int)((char*)host_ptr)[i] << std::endl;
       if(i > max_it){
           break;
       }
@@ -156,6 +174,7 @@ void SimpleDevice::global_copy_to(device_memory &mem)
   }
 
   const_copy_to(mem.name, &mem.device_pointer, sizeof(mem.device_pointer));
+  print_mem(this, mem);
 }
 
 

@@ -31,8 +31,12 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
     }
 
     prt::Ray prt_ray;
-    prt_ray.set_origin({ray->P.x, ray->P.y, ray->P.z});
-    prt_ray.set_direction({ray->D.x, ray->D.y, ray->D.z});
+    prt_ray.origin[0] = ray->P.x;
+    prt_ray.origin[1] = ray->P.y;
+    prt_ray.origin[2] = ray->P.z;
+    prt_ray.direction[0] = ray->D.x;
+    prt_ray.direction[1] = ray->D.y;
+    prt_ray.direction[2] = ray->D.z;
     prt_ray.tmin = ray->tmin;
     prt_ray.tmax = ray->tmax;
     prt_ray.self_id = ray->self.prim;

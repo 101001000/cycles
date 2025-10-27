@@ -16,9 +16,10 @@
     ccl_gpu_thread_idx_x)
   #define ccl_gpu_shared
 
-  __constant__ int warp_offset[1024 * 10 + 1];
+  //__constant__ int warp_offset[128 * 10 + 1];
   #undef __KERNEL_OPTIX__
   #define __KERNEL_GPU__
+  #define __KERNEL_SIMPLE__
 #endif
 
 #ifdef CPU_KERNEL
@@ -29,7 +30,7 @@
 #include "kernel/device/simple/config.h"
 #include "kernel/device/simple/globals.h"
 
-#define PRT_GLOBALS PRT_GVAR(kernel_globals, KernelParamsSimple)
+#define PRT_GLOBALS PRT_GVAR(kernel_globals, KernelParamsSimple) PRT_GVAR(warp_offset, int*)
 
 #include <portableRT/portableRT.hpp>
 

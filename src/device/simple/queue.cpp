@@ -35,10 +35,38 @@ std::string type_to_string(DeviceKernelArguments::Type type) {
     }
 }
 
+// Lee los primeros 8 valores de lookup_table, y después el 21759 y el 21760.
+void read_lookup(SimpleDevice *device){
+    char *kg_ptr = (char*)device->m_backend->get_global_ptr("kernel_globals");
+  
+    uintptr_t d_lookup_addr = 0;
+    device->m_backend->device_copy_from(
+        &d_lookup_addr,
+        kg_ptr + offsetof(KernelParamsSimple, lookup_table),
+        sizeof(d_lookup_addr));
+  
+    printf("d_lookup_addr: %p, kg_ptr %p, kg_ptroffset %p\n", (void*)d_lookup_addr, (void*)kg_ptr, (void*)(kg_ptr + offsetof(KernelParamsSimple, lookup_table)));
+  
+    float value;
+  
+    for(int i = 0; i < 8; ++i){
+      device->m_backend->device_copy_from(&value, (void*)(d_lookup_addr + i * sizeof(float)), sizeof(value));
+      std::cout << "value " << i << ": " << value << "\n";
+    }
+  
+    device->m_backend->device_copy_from(&value, (void*)(d_lookup_addr + 21759 * sizeof(float)), sizeof(value));
+    std::cout << "value 21759: " << value << "\n";
+  
+    device->m_backend->device_copy_from(&value, (void*)(d_lookup_addr + 21760 * sizeof(float)), sizeof(value));
+    std::cout << "value 21760: " << value << "\n";
+  }
+  
+
 bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const DeviceKernelArguments &args) {
 
     std::cout << "Enqueueing kernel " << kernel << " with work size " << work_size << " and args size " << args.count << std::endl;
 
+    //read_lookup(this->device);
 
     debug_enqueue_begin(kernel, work_size); 
 
@@ -94,7 +122,6 @@ bool SimpleDeviceQueue::enqueue(DeviceKernel kernel, const int work_size, const 
         
         KernelArgs ka;
         ka.num_states = get_scalar<int>(args.values[0]);
-        std::cout << "Invocando simple_integrator_reset" <<  ka.num_states  << std::endl;
         device->m_backend->parallel_invoke("simple_integrator_reset", dummy_rays, dummy_output, &ka, sizeof(ka));
         break;
     }
