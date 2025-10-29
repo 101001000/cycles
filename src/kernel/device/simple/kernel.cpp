@@ -36,14 +36,3 @@
 
 #include "kernel/device/gpu/image.h"
 #include "kernel/device/gpu/kernel.h"
-
-
-static auto run = [](){
-  //std::cout << "KERNEL.CPP!!!" << std::endl;
-  return 0;
-}();
-
-
-extern "C" int kernel_force_init();
-extern "C" int kernel_force_init() { return run; }
-

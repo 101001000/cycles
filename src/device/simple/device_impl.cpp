@@ -11,10 +11,6 @@
 
 CCL_NAMESPACE_BEGIN
 
-extern "C" int kernel_force_init();
-static int _force = kernel_force_init();
-
-
 SimpleDevice::SimpleDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless) : GPUDevice(info, stats, profiler, headless), object_ids_mem(this, "object_ids", MEM_GLOBAL) {
 
     prt::kernelapi_init({{"kernel_globals", sizeof(KernelParamsSimple)}, {"warp_offset", sizeof(int*)}});
