@@ -6,6 +6,7 @@
 #include <climits>
 #include <cstring>
 #include <iostream>
+#include <atomic>
 
 #define __KERNEL_GPU__
 #define __KERNEL_SIMPLE__
@@ -130,15 +131,48 @@ ccl_device_forceinline T ccl_gpu_tex_object_read_3D(const ccl_gpu_tex_object_3D 
   return ptr[idx];
 }
 
+// TODO esto es solo para cpu, mover a su sitio correspondiente.
+// uint32/int: fetch_add/sub devuelven el valor viejo
+static inline uint32_t _afaa_u32(unsigned int* p, uint32_t v) {
+    return __atomic_fetch_add(p, v, __ATOMIC_RELAXED);
+}
+static inline uint32_t _afaa_u32(int* p, uint32_t v) {
+    return (uint32_t)__atomic_fetch_add(p, (int)v, __ATOMIC_RELAXED);
+}
+static inline uint32_t _afas_u32(unsigned int* p, uint32_t v) {
+    return __atomic_fetch_sub(p, v, __ATOMIC_RELAXED);
+}
+static inline uint32_t _afas_u32(int* p, uint32_t v) {
+    return (uint32_t)__atomic_fetch_sub(p, (int)v, __ATOMIC_RELAXED);
+}
 
-#define atomic_fetch_and_add_uint32(ptr, val) \
-  ( ( *(ptr) += (val) ), (*(ptr) - (val)) )
+// float: add-and-fetch devuelve el nuevo valor
+static inline float _aafe_f32(float* p, float v) {
+    float old;
+    __atomic_load(p, &old, __ATOMIC_RELAXED);
+    for (;;) {
+        float desired = old + v;
+        if (__atomic_compare_exchange(p, &old, &desired, true,
+                                      __ATOMIC_RELAXED, __ATOMIC_RELAXED))
+            return desired; // nuevo
+        // 'old' queda actualizado al valor actual si falló, reintentamos
+    }
+}
 
-#define atomic_fetch_and_sub_uint32(ptr, val) \
-  ( ( *(ptr) -= (val) ), (*(ptr) + (val)) )
-#define atomic_add_and_fetch_float(x, y) (*(x) += (y))
-#define atomic_compare_and_swap_float(dst, oldval, newval) \
-  ((*(dst) == (oldval)) ? (*(dst) = (newval), true) : false)
+// float: CAS que devuelve el valor previo (útil para leer el ID anterior)
+static inline float _acas_f32(float* p, float expected, float desired) {
+    float exp = expected;
+    (void)__atomic_compare_exchange(p, &exp, &desired, false,
+                                    __ATOMIC_RELAXED, __ATOMIC_RELAXED);
+    return exp; // valor que había antes (éxito o no)
+}
+
+#define atomic_fetch_and_add_uint32(ptr, val) _afaa_u32((ptr), (uint32_t)(val))
+#define atomic_fetch_and_sub_uint32(ptr, val) _afas_u32((ptr), (uint32_t)(val))
+#define atomic_add_and_fetch_float(ptr, val)  _aafe_f32((ptr), (float)(val))
+#define atomic_compare_and_swap_float(ptr, oldval, newval) _acas_f32((ptr), (float)(oldval), (float)(newval))
+
+
 
 #include "util/half.h"
 #include "util/types.h"

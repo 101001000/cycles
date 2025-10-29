@@ -1,3 +1,5 @@
+// TODO: Limpiar esto
+
 #ifdef OPTIX_KERNEL
   #include "kernel/device/optix/compat.h"
   #define ccl_gpu_block_dim_x 1
@@ -24,7 +26,6 @@
 
 #ifdef CPU_KERNEL
   #include "kernel/device/simple/compat.h"
-  int warp_offset[1024 * 10 + 1];
 #endif
 
 #include "kernel/device/simple/config.h"
